@@ -1,5 +1,6 @@
 {
   "name": "iggi/curlrequest",
+  "version": "1.0.0",
   "description": "A helper class to quickly launch your curl requests.",
   "keywords": ["curl", "request"],
   "homepage": "https://github.com/ignatisd/curlrequest",
