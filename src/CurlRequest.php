@@ -374,7 +374,7 @@ class CurlRequest
         $url    = parse_url($this->url);
         $port   = isset($url['port']) ? ':' . $url['port'] : '';
         $query  = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
-        $httpRequest = "{$this->method} {$url['path']}{$query} ${$http}";
+        $httpRequest = "{$this->method} {$url['path']}{$query} {$http}";
         $httpRequest .= "\r\n";
         $httpRequest .= "Host: {$url['scheme']}://{$url['host']}{$port}"; // http://127.0.0.1:3001
         foreach ($this->headers as $header) {
