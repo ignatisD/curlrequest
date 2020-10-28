@@ -18,23 +18,16 @@ use Iggi\CurlRequest;
 
 $curlRequest = new CurlRequest();
 $response = $curlRequest->get("https://ignatisd.gr/hello")->exec();
-print_r($response);
+print_r($response->toArray());
 /*
 array(
     "activeCookies" => string[][],
-    "body" => string,
-    "code" => number,
     "cookies" => string[][],
-    "header" => string,
+    "code" => number,
+    "headers" => string[],
     "error" => string,
     "timing" => string,
-    "request" => array(
-         "method" => string,
-         "url" => string,
-         "headers" => string[],
-         "body" => string,
-         "proxy" => string
-    )
+    "body" => string
 )
 */
 ```

@@ -10,6 +10,12 @@ namespace Iggi;
 class CurlRequest
 {
 
+    const GET = "GET";
+    const POST = "POST";
+    const PUT = "PUT";
+    const PATCH = "PATCH";
+    const DELETE = "DELETE";
+
     protected $started_at;
     protected $curl = null;
     protected $method = "GET";
@@ -27,8 +33,10 @@ class CurlRequest
     public $headers = array();
     public $body = null;
 
+    protected $httpVersion = CURL_HTTP_VERSION_1_0;
     protected $cookieList = false;
     protected $request;
+    protected $response;
     protected $responses = array();
 
     public function __construct($proxy = null)
@@ -105,7 +113,7 @@ class CurlRequest
 
     public function get($url = "", $headers = array())
     {
-        $this->method = "GET";
+        $this->method = self::GET;
         $this->url = $url;
         $this->headers = $headers;
         $this->body = null;
@@ -113,7 +121,7 @@ class CurlRequest
     }
     public function post($url = "", $headers = array(), $body = null)
     {
-        $this->method = "POST";
+        $this->method = self::POST;
         $this->url = $url;
         $this->headers = $headers;
         $this->body = $body;
@@ -121,7 +129,15 @@ class CurlRequest
     }
     public function put($url = "", $headers = array(), $body = null)
     {
-        $this->method = "PUT";
+        $this->method = self::PUT;
+        $this->url = $url;
+        $this->headers = $headers;
+        $this->body = $body;
+        return $this;
+    }
+    public function patch($url = "", $headers = array(), $body = null)
+    {
+        $this->method = self::PATCH;
         $this->url = $url;
         $this->headers = $headers;
         $this->body = $body;
@@ -129,7 +145,7 @@ class CurlRequest
     }
     public function delete($url = "", $headers = array(), $body = null)
     {
-        $this->method = "DELETE";
+        $this->method = self::DELETE;
         $this->url = $url;
         $this->headers = $headers;
         $this->body = $body;
@@ -139,7 +155,7 @@ class CurlRequest
     public function setMethod($method, $body = null)
     {
         $this->method = $method;
-        if(in_array($method, array("POST","PUT","DELETE","PATCH"))){
+        if(in_array($method, array(self::POST,self::PUT,self::PATCH,self::DELETE))){
             $this->setBody($body);
         }
         return $this;
@@ -182,62 +198,6 @@ class CurlRequest
         return $responses;
     }
 
-    /**
-     * @param string $response
-     * @return array
-        <pre> array(
-            "activeCookies" => string[][],
-            "body" => string,
-            "code" => number,
-            "cookies" => string[][],
-            "header" => string,
-            "error" => string,
-            "timing" => string,
-            "request" => array(
-         *      "method" => string,
-         *      "url" => string,
-         *      "headers" => string[],
-         *      "body" => string,
-         *      "proxy" => string
-         *  )
-        )
-        </pre>
-     */
-    public function parseResponse($response)
-    {
-        $header_size = curl_getinfo($this->curl, CURLINFO_HEADER_SIZE);
-        $header = substr($response, 0, $header_size);
-        $responseBody = substr($response, $header_size);
-        $err = curl_error($this->curl);
-
-        $return = array();
-        $return["cookies"] = array();
-        preg_match_all('/^set-cookie:\s*([^;]*)/mi', $header, $matches);
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $return["cookies"] = array_merge($return["cookies"], $cookie);
-        }
-        $return["activeCookies"] = array();
-        if ($this->cookieList) {
-        /**
-         *  CURLINFO_COOKIELIST is available by curl version >= 7.14.1 and php >= 5.5
-         */
-            $activeCookies = curl_getinfo($this->curl, CURLINFO_COOKIELIST);
-            foreach($activeCookies as $activeCookie) {
-                $parsedCookie = explode("\t", $activeCookie);
-                $return["activeCookies"][] = $parsedCookie;
-            }
-        }
-        $return["body"] = $responseBody;
-        $return["code"] = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
-        $return["header"] = $header;
-        $return["error"] = $err;
-        $return["timing"] = sprintf("%01.3f sec", (microtime(true) - $this->started_at));
-        $return["request"] = $this->request;
-        $this->responses[] = $return;
-        return $return;
-    }
-
     public function build($http1_0 = false)
     {
         if(empty($this->curl)){
@@ -262,13 +222,15 @@ class CurlRequest
         if (!empty($this->cookieFile)) {
             curl_setopt($this->curl, CURLOPT_COOKIEJAR, $this->cookieFile);
         }
-        if ($this->method == "GET") {
+        if ($this->method == self::GET) {
             curl_setopt($this->curl, CURLOPT_HTTPGET, 1);
             curl_setopt($this->curl, CURLOPT_POST, false);
         }
         if($http1_0){
+            $this->httpVersion = CURL_HTTP_VERSION_1_0;
             curl_setopt($this->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
         }else{
+            $this->httpVersion = CURL_HTTP_VERSION_1_1;
             curl_setopt($this->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         }
 
@@ -295,42 +257,14 @@ class CurlRequest
     }
 
     /**
-     * Parse header string into http headers array
-     * @param string $header
-     * @return array
-     */
-    public static function parseHeaders($header = "")
-    {
-        $headers = array();
-
-        foreach (explode("\r\n", $header) as $i => $line)
-            if ($i === 0)
-                $headers['http_code'] = $line;
-            else
-            {
-                $temp = explode(': ', $line);
-                if(empty($temp[0]) || empty($temp[1]))
-                    continue;
-                $headers[strtolower($temp[0])] = $temp[1];
-            }
-
-        return $headers;
-    }
-    /**
      * Execute the request and return the response
      * @param bool $http1_0
-     * @return array
+     * @return CurlResponse
      */
     public function exec($http1_0 = false){
         $this->started_at = microtime(true);
         $this->build($http1_0);
-        $this->request = array(
-            "method" => $this->method,
-            "url" => $this->url,
-            "headers" => $this->headers,
-            "body" => $this->body,
-            "proxy" => $this->proxy,
-        );
+        $this->request = $this->toArray();
         $response = curl_exec($this->curl);
         return $this->parseResponse($response);
     }
@@ -408,20 +342,129 @@ class CurlRequest
         return $name;
     }
 
+    /**
+     * @return array
+     */
+    public function toArray() {
+        return array(
+            "method" => $this->method,
+            "url" => $this->url,
+            "headers" => $this->headers,
+            "body" => $this->body,
+            "proxy" => $this->proxy,
+        );
+    }
+
+    /**
+     * @return string
+     */
+    public function toJson() {
+        return json_encode($this->toArray());
+    }
+
+    /**
+     * HTTP code snippet
+     * @return string
+     */
+    public function toString() {
+        $http = "HTTP/1.1";
+        if ($this->httpVersion === CURL_HTTP_VERSION_1_0) {
+            $http = "HTTP/1.0";
+        }
+        $url    = parse_url($this->url);
+        $port   = isset($url['port']) ? ':' . $url['port'] : '';
+        $query  = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+        $httpRequest = "{$this->method} {$url['path']}{$query} ${$http}";
+        $httpRequest .= "\r\n";
+        $httpRequest .= "Host: {$url['scheme']}://{$url['host']}{$port}"; // http://127.0.0.1:3001
+        foreach ($this->headers as $header) {
+            $httpRequest .= "\r\n";
+            $httpRequest .= $header;
+        }
+        if (!empty($this->body)) {
+            $httpRequest .= "\r\n";
+            $httpRequest .= "\r\n";
+            $httpRequest .= $this->body;
+        }
+        return $httpRequest;
+    }
+
+    /**
+     * @param string $response
+     * @return CurlResponse
+     */
+    protected function parseResponse($response)
+    {
+        $header_size = curl_getinfo($this->curl, CURLINFO_HEADER_SIZE);
+        $header = substr($response, 0, $header_size);
+        $responseBody = substr($response, $header_size);
+        $err = curl_error($this->curl);
+
+        $cookies = array();
+        preg_match_all('/^set-cookie:\s*([^;]*)/mi', $header, $matches);
+        foreach($matches[1] as $item) {
+            parse_str($item, $cookie);
+            $cookies = array_merge($cookies, $cookie);
+        }
+        $allCookies = array();
+        if ($this->cookieList) {
+            /**
+             *  CURLINFO_COOKIELIST is available by curl version >= 7.14.1 and php >= 5.5
+             */
+            $activeCookies = curl_getinfo($this->curl, CURLINFO_COOKIELIST);
+            foreach($activeCookies as $activeCookie) {
+                $parsedCookie = explode("\t", $activeCookie);
+                $allCookies[] = $parsedCookie;
+            }
+        }
+        $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+        $this->response = new CurlResponse($err, $header, $responseBody);
+        $this->response
+            ->setCode($code)
+            ->setCookies($cookies, $allCookies)
+            ->setTiming($this->started_at)
+            ->setRequest($this);
+        $this->responses[] = $this->response;
+        return $this->response;
+    }
+
     /** Static methods */
+
+    /**
+     * Parse header string into http headers array
+     * @param string $header
+     * @return array
+     */
+    public static function parseHeaders($header = "")
+    {
+        $headers = array();
+
+        foreach (explode("\r\n", $header) as $i => $line)
+            if ($i === 0)
+                $headers['http_code'] = $line;
+            else
+            {
+                $temp = explode(': ', $line);
+                if(empty($temp[0]) || empty($temp[1]))
+                    continue;
+                $headers[strtolower($temp[0])] = $temp[1];
+            }
+
+        return $headers;
+    }
 
     /**
      * A simple GET request
      * @param $url
      * @param null $headers
      * @param null $proxy
-     * @return array
+     * @return CurlResponse
      */
     public static function sget($url, $headers = null, $proxy = null)
     {
         $curlRequest = new CurlRequest($proxy);
         return $curlRequest
-            ->init("GET", $url)
+            ->init(self::GET, $url)
             ->setHeaders($headers)
             ->exec();
     }
@@ -432,13 +475,13 @@ class CurlRequest
      * @param null $headers
      * @param null $body
      * @param null $proxy
-     * @return array
+     * @return CurlResponse
      */
     public static function spost($url, $headers = null, $body = null, $proxy = null)
     {
         $curlRequest = new CurlRequest($proxy);
         return $curlRequest
-            ->init("POST", $url)
+            ->init(self::POST, $url)
             ->setHeaders($headers)
             ->setBody($body)
             ->exec();
@@ -448,7 +491,7 @@ class CurlRequest
     {
         $curlRequest = new CurlRequest($proxy);
         return $curlRequest
-            ->init("PUT", $url)
+            ->init(self::PUT, $url)
             ->setHeaders($headers)
             ->setBody($body)
             ->exec();
@@ -458,7 +501,7 @@ class CurlRequest
     {
         $curlRequest = new CurlRequest($proxy);
         return $curlRequest
-            ->init("PATCH", $url)
+            ->init(self::PATCH, $url)
             ->setHeaders($headers)
             ->setBody($body)
             ->exec();
@@ -468,13 +511,13 @@ class CurlRequest
     {
         $curlRequest = new CurlRequest($proxy);
         return $curlRequest
-            ->init("DELETE", $url)
+            ->init(self::DELETE, $url)
             ->setHeaders($headers)
             ->setBody($body)
             ->exec();
     }
 
-    public static function custom($url, $headers = null, $body = null, $proxy = null, $method = "GET", $userAgent = true, $gzip = false)
+    public static function custom($url, $headers = null, $body = null, $proxy = null, $method = self::GET, $userAgent = true, $gzip = false)
     {
         $curlRequest = new CurlRequest($proxy);
         $curlRequest
