@@ -1,0 +1,24 @@
+{
+  "name": "iggi/curlrequest",
+  "description": "A helper class to quickly launch your curl requests.",
+  "keywords": ["curl", "request"],
+  "homepage": "https://github.com/ignatisd/curlrequest",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ignatios Drakoulas",
+      "email": "ignatisnb@gmail.com",
+      "homepage": "https://ignatisd.gr"
+    }
+  ],
+  "require": {
+    "php": ">=5.4",
+    "ext-curl": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Iggi\\": "src/"
+    }
+  }
+}
