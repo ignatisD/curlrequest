@@ -7,6 +7,10 @@
  */
 namespace Iggi;
 
+/**
+ * Class CurlResponse
+ * @package Iggi
+ */
 class CurlResponse
 {
     /**
@@ -26,7 +30,7 @@ class CurlResponse
      */
     public $body;
     /**
-     * @var array
+     * @var string[]
      */
     public $headers = array();
     /**
@@ -42,6 +46,12 @@ class CurlResponse
      */
     public $request;
 
+    /**
+     * CurlResponse constructor.
+     * @param string $error
+     * @param string $header
+     * @param string $body
+     */
     public function __construct($error = "", $header = "", $body = "")
     {
         $this->error = $error;
@@ -49,6 +59,12 @@ class CurlResponse
         $this->body = $body;
         $this->request = array();
     }
+
+    /**
+     * Helper to parse the http header
+     * @param string $header
+     * @return $this
+     */
     protected function parseHeaders($header = "")
     {
         $this->headers = array();
@@ -67,36 +83,68 @@ class CurlResponse
         return $this;
     }
 
+    /**
+     * Retrieve a specific http header
+     * @param string $key
+     * @return string|null
+     */
     public function header($key){
         if (isset($this->headers[$key])) {
             return $this->headers[$key];
         }
         return null;
     }
+
+    /**
+     * @return bool
+     */
     public function ok(){
         return empty($this->error);
     }
 
+    /**
+     * @param integer $started
+     * @return $this
+     */
     public function setTiming($started){
         $this->timing = sprintf("%01.3f sec", (microtime(true) - $started));
         return $this;
     }
+
+    /**
+     * @param string[] $cookies
+     * @param string[] $activeCookies
+     * @return $this
+     */
     public function setCookies($cookies = array(), $activeCookies = array()){
         $this->cookies = $cookies;
         $this->activeCookies = $activeCookies;
         return $this;
     }
 
+    /**
+     * @param integer $code
+     * @return $this
+     */
     public function setCode($code) {
         $this->code = $code;
         return $this;
     }
 
-    public function setRequest(CurlRequest $request) {
-        $this->request = $request->toArray();
+    /**
+     * Sets the {@see CurlRequest} that resulted in this  {@see CurlResponse}
+     * @param array $request
+     * @return $this
+     */
+    public function setRequest($request = array()) {
+        $this->request = $request;
         return $this;
     }
 
+    /**
+     * Try to decode the {@see CurlResponse} body as json
+     * @return mixed|null
+     */
     public function json() {
         try {
             return json_decode($this->body, true);
@@ -106,6 +154,10 @@ class CurlResponse
         return null;
     }
 
+    /**
+     * Array representation of the {@see CurlResponse}
+     * @return array
+     */
     public function toArray() {
         return array(
             "code" => $this->code,
@@ -117,7 +169,19 @@ class CurlResponse
             "body" => $this->body
         );
     }
+
+    /**
+     * Json string representation of the {@see CurlResponse}
+     * @return false|string
+     */
     public function toJson() {
         return json_encode($this->toArray());
+    }
+
+    /**
+     * @return false|string
+     */
+    public function toString() {
+        return $this->toJson();
     }
 }

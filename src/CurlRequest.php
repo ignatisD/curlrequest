@@ -7,6 +7,10 @@
  */
 namespace Iggi;
 
+/**
+ * Class CurlRequest
+ * @package Iggi
+ */
 class CurlRequest
 {
 
@@ -423,7 +427,7 @@ class CurlRequest
             ->setCode($code)
             ->setCookies($cookies, $allCookies)
             ->setTiming($this->started_at)
-            ->setRequest($this);
+            ->setRequest($this->toArray());
         $this->responses[] = $this->response;
         return $this->response;
     }
