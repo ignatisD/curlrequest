@@ -420,7 +420,7 @@ class CurlRequest
         if ($response["error"]) {
             exit($response["error"]);
         }
-        $headers = self::parseHeaders($response["header"]);
+        $headers = $response["headers"];
         $contentType = isset($headers["content-type"]) ? $headers["content-type"] : "text/plain";
         header("content-type: " . $contentType);
         if (!empty($filename)) {
