@@ -5,6 +5,7 @@
  * Date: 13/1/2019
  * Time: 11:38
  */
+
 namespace Iggi;
 
 /**
@@ -14,11 +15,11 @@ namespace Iggi;
 class CurlResponse
 {
     /**
-     * @var array
+     * @var string[]
      */
     public $cookies = array();
     /**
-     * @var array
+     * @var string[][]
      */
     public $activeCookies = array();
     /**
@@ -74,7 +75,7 @@ class CurlResponse
                 $this->code = $line;
             } else {
                 $temp = explode(': ', $line);
-                if(empty($temp[0]) || empty($temp[1])) {
+                if (empty($temp[0]) || empty($temp[1])) {
                     continue;
                 }
                 $this->headers[strtolower($temp[0])] = $temp[1];
@@ -88,7 +89,8 @@ class CurlResponse
      * @param string $key
      * @return string|null
      */
-    public function header($key){
+    public function header($key)
+    {
         if (isset($this->headers[$key])) {
             return $this->headers[$key];
         }
@@ -96,9 +98,11 @@ class CurlResponse
     }
 
     /**
+     * Returns if the request was successful or not
      * @return bool
      */
-    public function ok(){
+    public function ok()
+    {
         return empty($this->error);
     }
 
@@ -106,7 +110,8 @@ class CurlResponse
      * @param integer $started
      * @return $this
      */
-    public function setTiming($started){
+    public function setTiming($started)
+    {
         $this->timing = sprintf("%01.3f sec", (microtime(true) - $started));
         return $this;
     }
@@ -116,17 +121,20 @@ class CurlResponse
      * @param string[] $activeCookies
      * @return $this
      */
-    public function setCookies($cookies = array(), $activeCookies = array()){
+    public function setCookies($cookies = array(), $activeCookies = array())
+    {
         $this->cookies = $cookies;
         $this->activeCookies = $activeCookies;
         return $this;
     }
 
     /**
+     * Set the response http code
      * @param integer $code
      * @return $this
      */
-    public function setCode($code) {
+    public function setCode($code)
+    {
         $this->code = $code;
         return $this;
     }
@@ -136,7 +144,8 @@ class CurlResponse
      * @param array $request
      * @return $this
      */
-    public function setRequest($request = array()) {
+    public function setRequest($request = array())
+    {
         $this->request = $request;
         return $this;
     }
@@ -145,7 +154,8 @@ class CurlResponse
      * Try to decode the {@see CurlResponse} body as json
      * @return mixed|null
      */
-    public function json() {
+    public function json()
+    {
         try {
             return json_decode($this->body, true);
         } catch (\Exception $e) {
@@ -158,7 +168,8 @@ class CurlResponse
      * Array representation of the {@see CurlResponse}
      * @return array
      */
-    public function toArray() {
+    public function toArray()
+    {
         return array(
             "code" => $this->code,
             "cookies" => $this->cookies,
@@ -174,14 +185,17 @@ class CurlResponse
      * Json string representation of the {@see CurlResponse}
      * @return false|string
      */
-    public function toJson() {
+    public function toJson()
+    {
         return json_encode($this->toArray());
     }
 
     /**
+     * Magic method to return the string representation of the response
      * @return false|string
      */
-    public function toString() {
+    public function __toString()
+    {
         return $this->toJson();
     }
 }
